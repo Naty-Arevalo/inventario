@@ -2,18 +2,28 @@
 
 Aplicación web para gestionar el stock de un sector: registro de mercadería que ingresa, conteos de inventario por fecha, control de stock mínimo con alertas y sugerencia automática de reposición.
 
-Construida con **Next.js 16** (App Router), **React 19**, **Tailwind CSS 4** y **SQLite** (módulo `node:sqlite` de Node.js, sin dependencias externas de base de datos).
+Construida con **Next.js 16** (App Router), **React 19**, **Tailwind CSS 4** y **Turso** (base libSQL en la nube, accedida con `@libsql/client`).
 
 ## Puesta en marcha
 
-```bash
-npm install
-npm run dev
-```
+1. Crear un archivo `.env.local` en la raíz con las credenciales de la base:
 
-Abrir [http://localhost:3000](http://localhost:3000).
+   ```
+   TURSO_DATABASE_URL=libsql://<tu-base>.turso.io
+   TURSO_AUTH_TOKEN=<tu-token>
+   ```
 
-- La base de datos se crea sola en `data/inventario.db` al primer arranque (tablas e índices incluidos).
+2. Instalar y arrancar:
+
+   ```bash
+   npm install
+   npm run dev
+   ```
+
+3. Abrir [http://localhost:3000](http://localhost:3000).
+
+- Las tablas e índices se crean solos en la base al primer arranque, si todavía no existen.
+- Cada instancia de la app apunta a su propia base (por ejemplo, una por comercio): alcanza con cambiar las dos variables de entorno.
 - Para usar la app desde otro dispositivo de la red (`http://<ip>:3000`), la IP debe estar en `allowedDevOrigins` dentro de `next.config.ts`.
 
 ## Funcionalidades
@@ -68,8 +78,8 @@ Muestra los productos con stock bajo ordenados por criticidad (mayor déficit re
 
 ## Datos importantes
 
-- **Base de datos**: SQLite en `data/inventario.db`. Modo WAL y foreign keys activados. Índices sobre `producto_id` en `inventarios` y `mercaderia`.
-- **Esquema**: `categorias`, `productos`, `inventarios` (único por fecha+producto), `mercaderia` (único por fecha+producto). Se crea automáticamente si no existe (`src/lib/db.ts`). El directorio `data/` está fuera del control de versiones.
+- **Base de datos**: Turso (libSQL en la nube), configurada por variables de entorno (`TURSO_DATABASE_URL` / `TURSO_AUTH_TOKEN` en `.env.local`, ignorado por git). Las credenciales nunca van al repositorio.
+- **Esquema**: `categorias`, `productos`, `inventarios` (único por fecha+producto), `mercaderia` (único por fecha+producto). Se crea automáticamente si no existe, en el primer acceso a la base (`src/lib/db.ts`), con índices sobre `producto_id` en `inventarios` y `mercaderia`.
 - **Convención de fechas**: la mercadería cargada el mismo día de un inventario cuenta como ingresada *después* del conteo (sumará al siguiente inventario).
 - **Server Actions**: toda la lógica de datos está en `src/lib/actions/*` como server actions; las páginas son client components que las consumen.
 - **Scripts**: `npm run dev` (desarrollo), `npm run build` + `npm start` (producción), `npm run lint`.
