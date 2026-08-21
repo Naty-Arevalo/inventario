@@ -145,24 +145,24 @@ export default function ReposicionPage() {
             <table className="w-full text-sm">
               <thead className="bg-amber-50 text-amber-800">
                 <tr>
-                  <th className="text-left px-4 py-3 font-semibold">Producto</th>
-                  <th className="text-left px-4 py-3 font-semibold">Categoría</th>
-                  <th className="text-center px-4 py-3 font-semibold">Stock Actual</th>
-                  <th className="text-center px-4 py-3 font-semibold" title="Consumo promedio por día entre los últimos dos inventarios">Consumo/día</th>
-                  <th className="text-center px-4 py-3 font-semibold" title="Días estimados hasta quedarte sin stock">Días restantes</th>
-                  <th className="text-center px-4 py-3 font-semibold">Comprar</th>
+                  <th className="text-left px-3 sm:px-4 py-3 font-semibold">Producto</th>
+                  <th className="text-left px-4 py-3 font-semibold hidden md:table-cell">Categoría</th>
+                  <th className="text-center px-3 sm:px-4 py-3 font-semibold">Stock Actual</th>
+                  <th className="text-center px-4 py-3 font-semibold hidden lg:table-cell" title="Consumo promedio por día entre los últimos dos inventarios">Consumo/día</th>
+                  <th className="text-center px-3 sm:px-4 py-3 font-semibold" title="Días estimados hasta quedarte sin stock">Días restantes</th>
+                  <th className="text-center px-3 sm:px-4 py-3 font-semibold">Comprar</th>
                 </tr>
               </thead>
               <tbody>
                 {aComprar.map((s) => (
                   <tr key={s.producto_id} className="border-t hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium">{s.nombre}</td>
-                    <td className="px-4 py-3 text-gray-600">{s.categoria_nombre}</td>
-                    <td className="px-4 py-3 text-center text-gray-800 font-bold">{s.stock_actual}</td>
-                    <td className="px-4 py-3 text-center text-gray-600">
+                    <td className="px-3 sm:px-4 py-3 font-medium break-words">{s.nombre}</td>
+                    <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{s.categoria_nombre}</td>
+                    <td className="px-3 sm:px-4 py-3 text-center text-gray-800 font-bold">{s.stock_actual}</td>
+                    <td className="px-4 py-3 text-center text-gray-600 hidden lg:table-cell">
                       {s.consumo_diario !== null ? s.consumo_diario.toFixed(1) : "—"}
                     </td>
-                    <td className={`px-4 py-3 text-center font-medium ${
+                    <td className={`px-3 sm:px-4 py-3 text-center font-medium whitespace-nowrap ${
                       s.dias_restantes !== null && s.dias_restantes <= diasCobertura / 2
                         ? "text-red-600"
                         : "text-gray-600"

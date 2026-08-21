@@ -135,7 +135,7 @@ export default function InventarioPage() {
         Hacer Inventario
       </h2>
 
-      <div className="bg-white rounded-xl shadow border p-4 flex flex-wrap gap-4 items-end justify-between">
+      <div className="bg-white rounded-xl shadow border p-3 sm:p-4 flex flex-wrap gap-4 items-end justify-between">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Fecha del inventario</label>
@@ -173,7 +173,7 @@ export default function InventarioPage() {
               type="text"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="border rounded-lg px-3 py-2 text-sm w-48"
+              className="border rounded-lg px-3 py-2 text-sm w-full sm:w-48"
               placeholder="Nombre del producto..."
             />
           </div>
@@ -229,10 +229,10 @@ export default function InventarioPage() {
                       esBajo ? "bg-red-50" : ""
                     } hover:bg-gray-50`}
                   >
-                    <td className="px-4 py-3 font-medium">
+                    <td className="px-3 sm:px-4 py-3 font-medium break-words">
                       {f.producto.nombre}
                       {esBajo && (
-                        <span className="ml-2 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold">
+                        <span className="ml-2 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
                           ¡POCAS!
                         </span>
                       )}

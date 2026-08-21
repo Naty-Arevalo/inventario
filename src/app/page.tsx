@@ -29,9 +29,9 @@ export default function HomePage() {
 
   return (
     <div className="space-y-8">
-      <div className="text-center py-8">
-        <h2 className="text-4xl font-extrabold text-blue-800 mb-2">Bienvenido al Inventario</h2>
-        <p className="text-gray-500 text-lg">Gestioná el stock de tu sector de forma simple y rápida</p>
+      <div className="text-center py-6 sm:py-8">
+        <h2 className="text-3xl sm:text-4xl font-extrabold text-blue-800 mb-2">Bienvenido al Inventario</h2>
+        <p className="text-gray-500 text-base sm:text-lg">Gestioná el stock de tu sector de forma simple y rápida</p>
       </div>
 
       {ordenadas.length > 0 && (
@@ -71,7 +71,7 @@ export default function HomePage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Link href="/mercaderia" className="group">
-          <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-8 hover:shadow-xl hover:border-green-300 transition-all duration-200 text-center">
+          <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 sm:p-8 hover:shadow-xl hover:border-green-300 transition-all duration-200 text-center">
             <div className="bg-green-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition">
               <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
@@ -83,7 +83,7 @@ export default function HomePage() {
         </Link>
 
         <Link href="/inventario" className="group">
-          <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-8 hover:shadow-xl hover:border-blue-300 transition-all duration-200 text-center">
+          <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 sm:p-8 hover:shadow-xl hover:border-blue-300 transition-all duration-200 text-center">
             <div className="bg-blue-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition">
               <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
@@ -95,7 +95,7 @@ export default function HomePage() {
         </Link>
 
         <Link href="/stock" className="group">
-          <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-8 hover:shadow-xl hover:border-purple-300 transition-all duration-200 text-center">
+          <div className="bg-white rounded-2xl shadow-md border border-gray-200 p-6 sm:p-8 hover:shadow-xl hover:border-purple-300 transition-all duration-200 text-center">
             <div className="bg-purple-100 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-4 group-hover:bg-purple-200 transition">
               <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />

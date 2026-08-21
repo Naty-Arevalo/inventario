@@ -100,7 +100,7 @@ export default function MercaderiaPage() {
         Cargar Mercadería
       </h2>
 
-      <div className="bg-white rounded-xl shadow border p-4 flex flex-wrap gap-4 items-end justify-between">
+      <div className="bg-white rounded-xl shadow border p-3 sm:p-4 flex flex-wrap gap-4 items-end justify-between">
         <div className="flex flex-wrap gap-4 items-end">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Fecha de carga</label>
@@ -138,7 +138,7 @@ export default function MercaderiaPage() {
               type="text"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="border rounded-lg px-3 py-2 text-sm w-48"
+              className="border rounded-lg px-3 py-2 text-sm w-full sm:w-48"
               placeholder="Nombre del producto..."
             />
           </div>
@@ -167,7 +167,7 @@ export default function MercaderiaPage() {
       </div>
 
       {productos.length > 0 && (
-        <div className="bg-white rounded-xl shadow border overflow-hidden">
+        <div className="bg-white rounded-xl shadow border overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="bg-green-50 text-green-800">
               <tr>
@@ -178,7 +178,7 @@ export default function MercaderiaPage() {
             <tbody>
               {productosFiltrados.map((p) => (
                 <tr key={p.id} className="border-t hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">{p.nombre}</td>
+                  <td className="px-3 sm:px-4 py-3 font-medium break-words">{p.nombre}</td>
                   <td className="px-4 py-3 text-center">
                     <input
                       type="number"

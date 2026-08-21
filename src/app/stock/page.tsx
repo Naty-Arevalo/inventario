@@ -143,7 +143,7 @@ export default function StockPage() {
       </h2>
 
       {/* Categorías como filtros */}
-      <div className="bg-white rounded-xl shadow border p-4">
+      <div className="bg-white rounded-xl shadow border p-3 sm:p-4">
         <div className="flex flex-wrap gap-2 items-center">
           <button
             onClick={() => setCatFiltro(null)}
@@ -156,20 +156,28 @@ export default function StockPage() {
             Todas
           </button>
           {categorias.map((c) => (
-            <button
+            <div
               key={c.id}
-              onClick={() => setCatFiltro(c.id)}
-              className={`px-3 py-1.5 rounded-full text-sm font-medium transition ${
+              className={`flex items-center rounded-full text-sm font-medium transition overflow-hidden ${
                 catFiltro === c.id
                   ? "bg-purple-600 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >
-              {c.nombre}
-              <span className="ml-1 text-xs opacity-70">
-                ({conteoPorCategoria.get(c.id) ?? 0})
-              </span>
-            </button>
+              <button onClick={() => setCatFiltro(c.id)} className="pl-3 py-1.5">
+                {c.nombre}
+                <span className="ml-1 text-xs opacity-70">
+                  ({conteoPorCategoria.get(c.id) ?? 0})
+                </span>
+              </button>
+              <button
+                onClick={() => handleEliminarCategoria(c.id, c.nombre)}
+                className="px-2 py-1.5 opacity-50 hover:opacity-100 hover:text-red-500"
+                title="Eliminar categoría"
+              >
+                ×
+              </button>
+            </div>
           ))}
         </div>
       </div>
@@ -198,14 +206,14 @@ export default function StockPage() {
 
       {/* Formulario nueva categoría */}
       {mostrarFormCat && (
-        <div className="bg-white rounded-xl shadow border p-4 flex gap-3 items-end">
-          <div>
+        <div className="bg-white rounded-xl shadow border p-4 flex flex-wrap gap-3 items-end">
+          <div className="flex-1 min-w-40">
             <label className="block text-sm font-medium text-gray-700 mb-1">Nombre</label>
             <input
               type="text"
               value={nuevaCatNombre}
               onChange={(e) => setNuevaCatNombre(e.target.value)}
-              className="border rounded-lg px-3 py-2 text-sm"
+              className="w-full border rounded-lg px-3 py-2 text-sm"
               placeholder="Ej: Bebidas"
             />
           </div>
@@ -218,33 +226,17 @@ export default function StockPage() {
         </div>
       )}
 
-      {/* Lista de categorías con opción de eliminar */}
-      <div className="flex flex-wrap gap-2">
-        {categorias.map((c) => (
-          <div key={c.id} className="flex items-center gap-1 bg-gray-100 rounded-full px-3 py-1 text-sm">
-            <span>{c.nombre}</span>
-            <button
-              onClick={() => handleEliminarCategoria(c.id, c.nombre)}
-              className="text-red-400 hover:text-red-600 ml-1"
-              title="Eliminar categoría"
-            >
-              ×
-            </button>
-          </div>
-        ))}
-      </div>
-
       {/* Tabla de stock */}
       <div className="bg-white rounded-xl shadow border overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-purple-50 text-purple-800">
             <tr>
-              <th className="text-left px-4 py-3 font-semibold">Producto</th>
-              <th className="text-left px-4 py-3 font-semibold">Categoría</th>
-              <th className="text-center px-4 py-3 font-semibold" title="Resultado del último inventario">Último Inventario</th>
-              <th className="text-center px-4 py-3 font-semibold" title="Mercadería ingresada desde el último inventario">Ingresó</th>
-              <th className="text-center px-4 py-3 font-semibold" title="Último inventario + mercadería ingresada">Stock Actual</th>
-              <th className="text-center px-4 py-3 font-semibold">Acciones</th>
+              <th className="text-left px-3 sm:px-4 py-3 font-semibold">Producto</th>
+              <th className="text-left px-4 py-3 font-semibold hidden md:table-cell">Categoría</th>
+              <th className="text-center px-4 py-3 font-semibold hidden lg:table-cell" title="Resultado del último inventario">Último Inventario</th>
+              <th className="text-center px-4 py-3 font-semibold hidden lg:table-cell" title="Mercadería ingresada desde el último inventario">Ingresó</th>
+              <th className="text-center px-3 sm:px-4 py-3 font-semibold" title="Último inventario + mercadería ingresada">Stock Actual</th>
+              <th className="text-center px-3 sm:px-4 py-3 font-semibold">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -265,28 +257,28 @@ export default function StockPage() {
                   key={s.producto_id}
                   className={`border-t ${esBajo ? "bg-red-50" : ""} hover:bg-gray-50`}
                 >
-                  <td className="px-4 py-3 font-medium">
+                  <td className="px-3 sm:px-4 py-3 font-medium break-words min-w-32">
                     {s.producto_nombre}
                     {esBajo && (
-                      <span className="ml-2 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold">
+                      <span className="ml-2 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full font-bold whitespace-nowrap">
                         ¡POCAS!
                       </span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-gray-600">{s.categoria_nombre}</td>
-                  <td className="px-4 py-3 text-center text-gray-600">{s.inventario_anterior}</td>
-                  <td className="px-4 py-3 text-center text-green-600 font-medium">+{s.mercaderia_recibida}</td>
+                  <td className="px-4 py-3 text-gray-600 hidden md:table-cell">{s.categoria_nombre}</td>
+                  <td className="px-4 py-3 text-center text-gray-600 hidden lg:table-cell">{s.inventario_anterior}</td>
+                  <td className="px-4 py-3 text-center text-green-600 font-medium hidden lg:table-cell">+{s.mercaderia_recibida}</td>
                   <td className={`px-4 py-3 text-center font-bold ${esBajo ? "text-red-600" : "text-gray-800"}`}>
                     {stockActual}
                   </td>
                   <td className="px-4 py-3 text-center">
                     {editando ? (
-                      <div className="flex gap-2 items-center justify-center">
+                      <div className="flex flex-wrap gap-2 items-center justify-center">
                         <input
                           type="text"
                           value={editarNombre}
                           onChange={(e) => setEditarNombre(e.target.value)}
-                          className="border rounded px-2 py-1 text-xs w-32"
+                          className="border rounded px-2 py-1 text-xs w-24 sm:w-32"
                         />
                         <input
                           type="number"
