@@ -1,29 +1,21 @@
 "use server";
 
-import { getDb, plain } from "@/lib/db";
+import { queryAll, run } from "@/lib/db";
 import type { Producto } from "@/lib/types";
 
 export async function getProductos(categoriaId?: number): Promise<Producto[]> {
-  const db = getDb();
   if (categoriaId) {
-    return plain(
-      db
-        .prepare(
-          `SELECT p.id, p.categoria_id, p.nombre, p.stock_minimo, c.nombre as categoria_nombre
-           FROM productos p JOIN categorias c ON p.categoria_id = c.id
-           WHERE p.categoria_id = ? ORDER BY p.nombre`
-        )
-        .all(categoriaId) as Producto[]
+    return queryAll<Producto>(
+      `SELECT p.id, p.categoria_id, p.nombre, p.stock_minimo, c.nombre as categoria_nombre
+       FROM productos p JOIN categorias c ON p.categoria_id = c.id
+       WHERE p.categoria_id = ? ORDER BY p.nombre`,
+      [categoriaId]
     );
   }
-  return plain(
-    db
-      .prepare(
-        `SELECT p.id, p.categoria_id, p.nombre, p.stock_minimo, c.nombre as categoria_nombre
-         FROM productos p JOIN categorias c ON p.categoria_id = c.id
-         ORDER BY c.nombre, p.nombre`
-      )
-      .all() as Producto[]
+  return queryAll<Producto>(
+    `SELECT p.id, p.categoria_id, p.nombre, p.stock_minimo, c.nombre as categoria_nombre
+     FROM productos p JOIN categorias c ON p.categoria_id = c.id
+     ORDER BY c.nombre, p.nombre`
   );
 }
 
@@ -34,12 +26,10 @@ export async function crearProducto(
 ): Promise<{ ok: boolean; error?: string }> {
   if (!nombre.trim()) return { ok: false, error: "El nombre es requerido" };
   if (!categoriaId) return { ok: false, error: "Seleccioná una categoría" };
-  const db = getDb();
   try {
-    db.prepare("INSERT INTO productos (categoria_id, nombre, stock_minimo) VALUES (?, ?, ?)").run(
-      categoriaId,
-      nombre.trim(),
-      stockMinimo
+    await run(
+      "INSERT INTO productos (categoria_id, nombre, stock_minimo) VALUES (?, ?, ?)",
+      [categoriaId, nombre.trim(), stockMinimo]
     );
     return { ok: true };
   } catch (e: unknown) {
@@ -54,13 +44,12 @@ export async function actualizarProducto(
   stockMinimo: number
 ): Promise<{ ok: boolean; error?: string }> {
   if (!nombre.trim()) return { ok: false, error: "El nombre es requerido" };
-  const db = getDb();
   try {
-    db.prepare("UPDATE productos SET nombre = ?, stock_minimo = ? WHERE id = ?").run(
+    await run("UPDATE productos SET nombre = ?, stock_minimo = ? WHERE id = ?", [
       nombre.trim(),
       stockMinimo,
-      id
-    );
+      id,
+    ]);
     return { ok: true };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -69,9 +58,10 @@ export async function actualizarProducto(
 }
 
 export async function eliminarProducto(id: number): Promise<{ ok: boolean; error?: string }> {
-  const db = getDb();
   try {
-    db.prepare("DELETE FROM productos WHERE id = ?").run(id);
+    await run("DELETE FROM inventarios WHERE producto_id = ?", [id]);
+    await run("DELETE FROM mercaderia WHERE producto_id = ?", [id]);
+    await run("DELETE FROM productos WHERE id = ?", [id]);
     return { ok: true };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);

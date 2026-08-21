@@ -1,24 +1,21 @@
 "use server";
 
-import { getDb, plain, plainOne, upsertFilas } from "@/lib/db";
+import { queryAll, queryOne, upsertFilas } from "@/lib/db";
 
 export async function getMercaderiaPorFecha(
   fecha: string
 ): Promise<{ producto_id: number; cantidad: number }[]> {
-  const db = getDb();
-  return plain(
-    db
-      .prepare("SELECT producto_id, cantidad FROM mercaderia WHERE fecha = ?")
-      .all(fecha) as { producto_id: number; cantidad: number }[]
+  return queryAll<{ producto_id: number; cantidad: number }>(
+    "SELECT producto_id, cantidad FROM mercaderia WHERE fecha = ?",
+    [fecha]
   );
 }
 
 export async function getFechasMercaderia(): Promise<string[]> {
-  const db = getDb();
-  const rows = db
-    .prepare("SELECT DISTINCT fecha FROM mercaderia ORDER BY fecha DESC")
-    .all() as { fecha: string }[];
-  return plain(rows).map((r) => r.fecha);
+  const rows = await queryAll<{ fecha: string }>(
+    "SELECT DISTINCT fecha FROM mercaderia ORDER BY fecha DESC"
+  );
+  return rows.map((r) => r.fecha);
 }
 
 export async function guardarMercaderia(
@@ -26,7 +23,7 @@ export async function guardarMercaderia(
   datos: { producto_id: number; cantidad: number }[]
 ): Promise<{ ok: boolean; error?: string }> {
   try {
-    upsertFilas("mercaderia", fecha, datos);
+    await upsertFilas("mercaderia", fecha, datos);
     return { ok: true };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -35,25 +32,19 @@ export async function guardarMercaderia(
 }
 
 export async function getMercaderiaAcumulada(): Promise<{ producto_id: number; total: number }[]> {
-  const db = getDb();
-  const ultimaFecha = plainOne(
-    db.prepare("SELECT MAX(fecha) as fecha FROM inventarios").get()
-  ) as { fecha: string | null } | undefined;
+  const ultimaFecha = await queryOne<{ fecha: string }>(
+    "SELECT MAX(fecha) as fecha FROM inventarios"
+  );
 
   if (!ultimaFecha?.fecha) {
-    return plain(
-      db
-        .prepare("SELECT producto_id, SUM(cantidad) as total FROM mercaderia GROUP BY producto_id")
-        .all() as { producto_id: number; total: number }[]
+    return queryAll<{ producto_id: number; total: number }>(
+      "SELECT producto_id, SUM(cantidad) as total FROM mercaderia GROUP BY producto_id"
     );
   }
 
-  return plain(
-    db
-      .prepare(
-        `SELECT producto_id, SUM(cantidad) as total FROM mercaderia
-         WHERE fecha >= ? GROUP BY producto_id`
-      )
-      .all(ultimaFecha.fecha) as { producto_id: number; total: number }[]
+  return queryAll<{ producto_id: number; total: number }>(
+    `SELECT producto_id, SUM(cantidad) as total FROM mercaderia
+     WHERE fecha >= ? GROUP BY producto_id`,
+    [ultimaFecha.fecha]
   );
 }

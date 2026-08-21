@@ -1,19 +1,16 @@
 "use server";
 
-import { getDb, plain } from "@/lib/db";
+import { queryAll, run } from "@/lib/db";
 import type { Categoria } from "@/lib/types";
 
 export async function getCategorias(): Promise<Categoria[]> {
-  const db = getDb();
-  const rows = db.prepare("SELECT id, nombre FROM categorias ORDER BY nombre").all() as Categoria[];
-  return plain(rows);
+  return queryAll<Categoria>("SELECT id, nombre FROM categorias ORDER BY nombre");
 }
 
 export async function crearCategoria(nombre: string): Promise<{ ok: boolean; error?: string }> {
   if (!nombre.trim()) return { ok: false, error: "El nombre es requerido" };
-  const db = getDb();
   try {
-    db.prepare("INSERT INTO categorias (nombre) VALUES (?)").run(nombre.trim());
+    await run("INSERT INTO categorias (nombre) VALUES (?)", [nombre.trim()]);
     return { ok: true };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
@@ -23,9 +20,9 @@ export async function crearCategoria(nombre: string): Promise<{ ok: boolean; err
 }
 
 export async function eliminarCategoria(id: number): Promise<{ ok: boolean; error?: string }> {
-  const db = getDb();
   try {
-    db.prepare("DELETE FROM categorias WHERE id = ?").run(id);
+    await run("DELETE FROM productos WHERE categoria_id = ?", [id]);
+    await run("DELETE FROM categorias WHERE id = ?", [id]);
     return { ok: true };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);

@@ -1,6 +1,6 @@
 "use server";
 
-import { getDb, plain } from "@/lib/db";
+import { queryAll, queryOne } from "@/lib/db";
 import type { SugerenciaReposicion } from "@/lib/types";
 
 interface FilaCalculo {
@@ -25,12 +25,10 @@ function diasEntre(desde: string, hasta: string): number {
 export async function getSugerenciaReposicion(
   diasCobertura: number = 14
 ): Promise<SugerenciaReposicion[]> {
-  const db = getDb();
-
   const fechas = (
-    db
-      .prepare("SELECT DISTINCT fecha FROM inventarios ORDER BY fecha DESC")
-      .all() as { fecha: string }[]
+    await queryAll<{ fecha: string }>(
+      "SELECT DISTINCT fecha FROM inventarios ORDER BY fecha DESC"
+    )
   ).map((r) => r.fecha);
 
   if (fechas.length === 0) return [];
@@ -38,30 +36,27 @@ export async function getSugerenciaReposicion(
   const ultima = fechas[0];
   const anterior = fechas.length > 1 ? fechas[1] : null;
 
-  const rows = plain(
-    db
-      .prepare(
-        `SELECT p.id as producto_id, p.nombre, c.nombre as categoria_nombre,
-                COALESCE(iu.cantidad, 0) as inv_ultima,
-                ia.cantidad as inv_anterior,
-                COALESCE(mu.ingresado, 0) as merc_ultima,
-                COALESCE(ma.ingresado, 0) as merc_anterior,
-                p.stock_minimo
-         FROM productos p
-         JOIN categorias c ON p.categoria_id = c.id
-         LEFT JOIN inventarios iu ON iu.producto_id = p.id AND iu.fecha = ?
-         LEFT JOIN inventarios ia ON ia.producto_id = p.id AND ia.fecha = ?
-         LEFT JOIN (
-           SELECT producto_id, SUM(cantidad) as ingresado FROM mercaderia
-           WHERE fecha >= ? GROUP BY producto_id
-         ) mu ON mu.producto_id = p.id
-         LEFT JOIN (
-           SELECT producto_id, SUM(cantidad) as ingresado FROM mercaderia
-           WHERE fecha > ? AND fecha <= ? GROUP BY producto_id
-         ) ma ON ma.producto_id = p.id
-         ORDER BY c.nombre, p.nombre`
-      )
-      .all(ultima, anterior ?? "", ultima, anterior ?? "", ultima) as FilaCalculo[]
+  const rows = await queryAll<FilaCalculo>(
+    `SELECT p.id as producto_id, p.nombre, c.nombre as categoria_nombre,
+            COALESCE(iu.cantidad, 0) as inv_ultima,
+            ia.cantidad as inv_anterior,
+            COALESCE(mu.ingresado, 0) as merc_ultima,
+            COALESCE(ma.ingresado, 0) as merc_anterior,
+            p.stock_minimo
+     FROM productos p
+     JOIN categorias c ON p.categoria_id = c.id
+     LEFT JOIN inventarios iu ON iu.producto_id = p.id AND iu.fecha = ?
+     LEFT JOIN inventarios ia ON ia.producto_id = p.id AND ia.fecha = ?
+     LEFT JOIN (
+       SELECT producto_id, SUM(cantidad) as ingresado FROM mercaderia
+       WHERE fecha >= ? GROUP BY producto_id
+     ) mu ON mu.producto_id = p.id
+     LEFT JOIN (
+       SELECT producto_id, SUM(cantidad) as ingresado FROM mercaderia
+       WHERE fecha > ? AND fecha <= ? GROUP BY producto_id
+     ) ma ON ma.producto_id = p.id
+     ORDER BY c.nombre, p.nombre`,
+    [ultima, anterior ?? "", ultima, anterior ?? "", ultima]
   );
 
   const dias = anterior ? Math.max(diasEntre(anterior, ultima), 1) : null;
@@ -72,7 +67,6 @@ export async function getSugerenciaReposicion(
     let consumo_diario: number | null = null;
     let objetivo = r.stock_minimo;
 
-    // Solo proyectar consumo si el producto fue contado en ambas fechas
     if (anterior && dias && r.inv_anterior !== null) {
       const consumido = Math.max(
         r.inv_anterior + r.merc_anterior - r.inv_ultima,
