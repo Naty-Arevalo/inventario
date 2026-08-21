@@ -1,0 +1,34 @@
+"use server";
+
+import { getDb, plain } from "@/lib/db";
+import type { Categoria } from "@/lib/types";
+
+export async function getCategorias(): Promise<Categoria[]> {
+  const db = getDb();
+  const rows = db.prepare("SELECT id, nombre FROM categorias ORDER BY nombre").all() as Categoria[];
+  return plain(rows);
+}
+
+export async function crearCategoria(nombre: string): Promise<{ ok: boolean; error?: string }> {
+  if (!nombre.trim()) return { ok: false, error: "El nombre es requerido" };
+  const db = getDb();
+  try {
+    db.prepare("INSERT INTO categorias (nombre) VALUES (?)").run(nombre.trim());
+    return { ok: true };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.includes("UNIQUE")) return { ok: false, error: "Ya existe una categoría con ese nombre" };
+    return { ok: false, error: msg };
+  }
+}
+
+export async function eliminarCategoria(id: number): Promise<{ ok: boolean; error?: string }> {
+  const db = getDb();
+  try {
+    db.prepare("DELETE FROM categorias WHERE id = ?").run(id);
+    return { ok: true };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : String(e);
+    return { ok: false, error: msg };
+  }
+}
