@@ -16,6 +16,7 @@ export default function StockPage() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [stock, setStock] = useState<InventarioCompleto[]>([]);
   const [catFiltro, setCatFiltro] = useState<number | null>(null);
+  const [cargando, setCargando] = useState(true);
 
   // Modal nuevo producto
   const [modalNuevo, setModalNuevo] = useState(false);
@@ -42,6 +43,7 @@ export default function StockPage() {
     setCategorias(cats);
     setProductos(prods);
     setStock(st);
+    setCargando(false);
   }, []);
 
   useEffect(() => {
@@ -227,6 +229,15 @@ export default function StockPage() {
       )}
 
       {/* Tabla de stock */}
+      {cargando ? (
+        <div className="bg-white rounded-xl shadow border py-12 flex flex-col items-center gap-3">
+          <svg className="w-7 h-7 text-purple-600 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
+          </svg>
+          <p className="text-gray-400 text-sm font-medium">Cargando stock...</p>
+        </div>
+      ) : (
       <div className="bg-white rounded-xl shadow border overflow-x-auto">
         <table className="w-full text-sm">
           <thead className="bg-purple-50 text-purple-800">
@@ -327,6 +338,7 @@ export default function StockPage() {
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Modal nuevo producto */}
       {modalNuevo && (

@@ -1,18 +1,7 @@
 "use server";
 
-import { queryAll, queryOne } from "@/lib/db";
+import { queryAll } from "@/lib/db";
 import type { SugerenciaReposicion } from "@/lib/types";
-
-interface FilaCalculo {
-  producto_id: number;
-  nombre: string;
-  categoria_nombre: string;
-  inv_ultima: number;
-  inv_anterior: number | null;
-  merc_ultima: number;
-  merc_anterior: number;
-  stock_minimo: number;
-}
 
 function diasEntre(desde: string, hasta: string): number {
   const [d1, m1, a1] = desde.split("-").map(Number);
@@ -25,71 +14,99 @@ function diasEntre(desde: string, hasta: string): number {
 export async function getSugerenciaReposicion(
   diasCobertura: number = 14
 ): Promise<SugerenciaReposicion[]> {
-  const fechas = (
-    await queryAll<{ fecha: string }>(
-      "SELECT DISTINCT fecha FROM inventarios ORDER BY fecha DESC"
-    )
-  ).map((r) => r.fecha);
+  const [productos, inventarios, mercaderias] = await Promise.all([
+    queryAll<{
+      producto_id: number;
+      nombre: string;
+      categoria_nombre: string;
+      stock_minimo: number;
+    }>(
+      `SELECT p.id as producto_id, p.nombre, c.nombre as categoria_nombre,
+              p.stock_minimo
+       FROM productos p JOIN categorias c ON p.categoria_id = c.id
+       ORDER BY c.nombre, p.nombre`
+    ),
+    queryAll<{ producto_id: number; fecha: string; cantidad: number }>(
+      "SELECT producto_id, fecha, cantidad FROM inventarios ORDER BY fecha DESC"
+    ),
+    queryAll<{ producto_id: number; fecha: string; cantidad: number }>(
+      "SELECT producto_id, fecha, cantidad FROM mercaderia"
+    ),
+  ]);
 
-  if (fechas.length === 0) return [];
+  if (inventarios.length === 0) return [];
 
-  const ultima = fechas[0];
-  const anterior = fechas.length > 1 ? fechas[1] : null;
+  const invPorProducto = new Map<
+    number,
+    { fecha: string; cantidad: number }[]
+  >();
+  for (const i of inventarios) {
+    const arr = invPorProducto.get(i.producto_id) ?? [];
+    arr.push({ fecha: i.fecha, cantidad: i.cantidad });
+    invPorProducto.set(i.producto_id, arr);
+  }
 
-  const rows = await queryAll<FilaCalculo>(
-    `SELECT p.id as producto_id, p.nombre, c.nombre as categoria_nombre,
-            COALESCE(iu.cantidad, 0) as inv_ultima,
-            ia.cantidad as inv_anterior,
-            COALESCE(mu.ingresado, 0) as merc_ultima,
-            COALESCE(ma.ingresado, 0) as merc_anterior,
-            p.stock_minimo
-     FROM productos p
-     JOIN categorias c ON p.categoria_id = c.id
-     LEFT JOIN inventarios iu ON iu.producto_id = p.id AND iu.fecha = ?
-     LEFT JOIN inventarios ia ON ia.producto_id = p.id AND ia.fecha = ?
-     LEFT JOIN (
-       SELECT producto_id, SUM(cantidad) as ingresado FROM mercaderia
-       WHERE fecha >= ? GROUP BY producto_id
-     ) mu ON mu.producto_id = p.id
-     LEFT JOIN (
-       SELECT producto_id, SUM(cantidad) as ingresado FROM mercaderia
-       WHERE fecha > ? AND fecha <= ? GROUP BY producto_id
-     ) ma ON ma.producto_id = p.id
-     ORDER BY c.nombre, p.nombre`,
-    [ultima, anterior ?? "", ultima, anterior ?? "", ultima]
-  );
+  const mercPorProducto = new Map<
+    number,
+    { fecha: string; cantidad: number }[]
+  >();
+  for (const m of mercaderias) {
+    const arr = mercPorProducto.get(m.producto_id) ?? [];
+    arr.push({ fecha: m.fecha, cantidad: m.cantidad });
+    mercPorProducto.set(m.producto_id, arr);
+  }
 
-  const dias = anterior ? Math.max(diasEntre(anterior, ultima), 1) : null;
+  return productos.map((p) => {
+    const conteos = invPorProducto.get(p.producto_id) ?? [];
+    const ultima = conteos[0];
+    const anterior = conteos[1];
+    const merca = mercPorProducto.get(p.producto_id) ?? [];
 
-  return rows.map((r) => {
-    const stock_actual = r.inv_ultima + r.merc_ultima;
+    let merc_ultima = 0;
+    let merc_anterior = 0;
+    if (ultima) {
+      for (const m of merca) {
+        if (m.fecha >= ultima.fecha) {
+          merc_ultima += m.cantidad;
+        } else if (anterior && m.fecha > anterior.fecha) {
+          merc_anterior += m.cantidad;
+        }
+      }
+    } else {
+      merc_ultima = merca.reduce((total, m) => total + m.cantidad, 0);
+    }
+
+    const inv_ultima = ultima?.cantidad ?? 0;
+    const inv_anterior = anterior?.cantidad ?? null;
+    const stock_actual = inv_ultima + merc_ultima;
 
     let consumo_diario: number | null = null;
-    let objetivo = r.stock_minimo;
+    let objetivo = p.stock_minimo;
 
-    if (anterior && dias && r.inv_anterior !== null) {
+    if (anterior && ultima) {
+      const dias = Math.max(diasEntre(anterior.fecha, ultima.fecha), 1);
       const consumido = Math.max(
-        r.inv_anterior + r.merc_anterior - r.inv_ultima,
+        (inv_anterior ?? 0) + merc_anterior - inv_ultima,
         0
       );
       consumo_diario = consumido / dias;
       objetivo = Math.max(
-        r.stock_minimo,
+        p.stock_minimo,
         Math.ceil(consumo_diario * diasCobertura)
       );
     }
 
     return {
-      producto_id: r.producto_id,
-      nombre: r.nombre,
-      categoria_nombre: r.categoria_nombre,
+      producto_id: p.producto_id,
+      nombre: p.nombre,
+      categoria_nombre: p.categoria_nombre,
       stock_actual,
       consumo_diario,
       dias_restantes:
         consumo_diario && consumo_diario > 0
           ? Math.floor(stock_actual / consumo_diario)
           : null,
-      stock_minimo: r.stock_minimo,
+      stock_minimo: p.stock_minimo,
       sugerido: Math.max(0, objetivo - stock_actual),
     };
   });

@@ -1,10 +1,50 @@
 "use server";
 
-import { queryAll, queryOne } from "@/lib/db";
+import { queryAll } from "@/lib/db";
 import type { InventarioCompleto } from "@/lib/types";
 
-export async function getStockTotal(): Promise<InventarioCompleto[]> {
-  const productos = await queryAll<{
+interface StockProducto {
+  inventario: number;
+  mercaderia: number;
+}
+
+async function calcularStockPorProducto(): Promise<Map<number, StockProducto>> {
+  const [ultimosInv, mercDesdeInv, todaMerc] = await Promise.all([
+    queryAll<{ producto_id: number; cantidad: number }>(
+      `SELECT i.producto_id, i.cantidad
+       FROM inventarios i
+       JOIN (SELECT producto_id, MAX(fecha) as fecha FROM inventarios GROUP BY producto_id) u
+         ON u.producto_id = i.producto_id AND u.fecha = i.fecha`
+    ),
+    queryAll<{ producto_id: number; total: number }>(
+      `SELECT m.producto_id, SUM(m.cantidad) as total
+       FROM mercaderia m
+       JOIN (SELECT producto_id, MAX(fecha) as fecha FROM inventarios GROUP BY producto_id) u
+         ON u.producto_id = m.producto_id AND m.fecha >= u.fecha
+       GROUP BY m.producto_id`
+    ),
+    queryAll<{ producto_id: number; total: number }>(
+      "SELECT producto_id, SUM(cantidad) as total FROM mercaderia GROUP BY producto_id"
+    ),
+  ]);
+
+  const mapa = new Map<number, StockProducto>();
+  for (const t of todaMerc) {
+    mapa.set(t.producto_id, { inventario: 0, mercaderia: t.total ?? 0 });
+  }
+  for (const m of mercDesdeInv) {
+    const actual = mapa.get(m.producto_id) ?? { inventario: 0, mercaderia: 0 };
+    mapa.set(m.producto_id, { ...actual, mercaderia: m.total ?? 0 });
+  }
+  for (const i of ultimosInv) {
+    const actual = mapa.get(i.producto_id) ?? { inventario: 0, mercaderia: 0 };
+    mapa.set(i.producto_id, { ...actual, inventario: i.cantidad });
+  }
+  return mapa;
+}
+
+async function getProductosConCategoria() {
+  return queryAll<{
     producto_id: number;
     producto_nombre: string;
     categoria_nombre: string;
@@ -15,71 +55,46 @@ export async function getStockTotal(): Promise<InventarioCompleto[]> {
      FROM productos p JOIN categorias c ON p.categoria_id = c.id
      ORDER BY c.nombre, p.nombre`
   );
+}
 
-  const ultimaFecha = await queryOne<{ fecha: string }>(
-    "SELECT MAX(fecha) as fecha FROM inventarios"
-  );
+export async function getStockTotal(): Promise<InventarioCompleto[]> {
+  const [productos, stocks] = await Promise.all([
+    getProductosConCategoria(),
+    calcularStockPorProducto(),
+  ]);
 
-  const mapaInv = new Map<number, number>();
-  const mapaMerc = new Map<number, number>();
-
-  if (ultimaFecha?.fecha) {
-    const invs = await queryAll<{ producto_id: number; cantidad: number }>(
-      "SELECT producto_id, cantidad FROM inventarios WHERE fecha = ?",
-      [ultimaFecha.fecha]
-    );
-    for (const i of invs) mapaInv.set(i.producto_id, i.cantidad);
-
-    const mercs = await queryAll<{ producto_id: number; total: number }>(
-      "SELECT producto_id, SUM(cantidad) as total FROM mercaderia WHERE fecha >= ? GROUP BY producto_id",
-      [ultimaFecha.fecha]
-    );
-    for (const m of mercs) mapaMerc.set(m.producto_id, m.total);
-  } else {
-    const mercs = await queryAll<{ producto_id: number; total: number }>(
-      "SELECT producto_id, SUM(cantidad) as total FROM mercaderia GROUP BY producto_id"
-    );
-    for (const m of mercs) mapaMerc.set(m.producto_id, m.total);
-  }
-
-  return productos.map((p) => ({
-    producto_id: p.producto_id,
-    producto_nombre: p.producto_nombre,
-    categoria_nombre: p.categoria_nombre,
-    inventario_anterior: mapaInv.get(p.producto_id) ?? 0,
-    mercaderia_recibida: mapaMerc.get(p.producto_id) ?? 0,
-    nuevo_conteo: null,
-    stock_minimo: p.stock_minimo,
-  }));
+  return productos.map((p) => {
+    const s = stocks.get(p.producto_id) ?? { inventario: 0, mercaderia: 0 };
+    return {
+      producto_id: p.producto_id,
+      producto_nombre: p.producto_nombre,
+      categoria_nombre: p.categoria_nombre,
+      inventario_anterior: s.inventario,
+      mercaderia_recibida: s.mercaderia,
+      nuevo_conteo: null,
+      stock_minimo: p.stock_minimo,
+    };
+  });
 }
 
 export async function getProductosBajoStock(): Promise<
   { nombre: string; categoria: string; cantidad: number; stock_minimo: number }[]
 > {
-  const ultimaFecha = await queryOne<{ fecha: string }>(
-    "SELECT MAX(fecha) as fecha FROM inventarios"
-  );
+  const [productos, stocks] = await Promise.all([
+    getProductosConCategoria(),
+    calcularStockPorProducto(),
+  ]);
 
-  if (!ultimaFecha?.fecha) return [];
-
-  return queryAll<{
-    nombre: string;
-    categoria: string;
-    cantidad: number;
-    stock_minimo: number;
-  }>(
-    `SELECT p.nombre, c.nombre as categoria,
-            COALESCE(i.cantidad, 0) + COALESCE(m.ingresado, 0) as cantidad,
-            p.stock_minimo
-     FROM productos p
-     JOIN categorias c ON p.categoria_id = c.id
-     LEFT JOIN inventarios i ON i.producto_id = p.id AND i.fecha = ?
-     LEFT JOIN (
-       SELECT producto_id, SUM(cantidad) as ingresado FROM mercaderia
-       WHERE fecha >= ? GROUP BY producto_id
-     ) m ON m.producto_id = p.id
-     WHERE COALESCE(i.cantidad, 0) + COALESCE(m.ingresado, 0) <= p.stock_minimo
-     ORDER BY cantidad ASC`,
-    [ultimaFecha.fecha, ultimaFecha.fecha]
-  );
+  return productos
+    .map((p) => {
+      const s = stocks.get(p.producto_id) ?? { inventario: 0, mercaderia: 0 };
+      return {
+        nombre: p.producto_nombre,
+        categoria: p.categoria_nombre,
+        cantidad: s.inventario + s.mercaderia,
+        stock_minimo: p.stock_minimo,
+      };
+    })
+    .filter((p) => p.cantidad <= p.stock_minimo)
+    .sort((a, b) => a.cantidad - b.cantidad);
 }
