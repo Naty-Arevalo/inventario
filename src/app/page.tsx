@@ -30,7 +30,7 @@ export default function HomePage() {
   return (
     <div className="space-y-8">
       <div className="text-center py-6 sm:py-8">
-        <h2 className="text-3xl sm:text-4xl font-extrabold text-blue-800 mb-2">Bienvenido al Inventario</h2>
+        <h2 className="text-3xl sm:text-4xl font-extrabold text-blue-800 mb-2">Bienvenido a StockAR</h2>
         <p className="text-gray-500 text-base sm:text-lg">Gestioná el stock de tu sector de forma simple y rápida</p>
       </div>
 

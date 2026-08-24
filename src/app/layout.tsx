@@ -3,8 +3,8 @@ import "./globals.css";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Inventario",
-  description: "Gestión de inventario",
+  title: "StockAR",
+  description: "Gestión de stock de tu sector",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -15,11 +15,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <div className="max-w-6xl mx-auto px-3 sm:px-4 py-3 sm:py-4 flex flex-col sm:flex-row items-center gap-2 sm:gap-4 sm:justify-between">
             <Link href="/" className="flex items-center gap-3">
               <div className="bg-white/20 rounded-xl p-2">
-                <svg className="w-7 h-7 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                </svg>
+                <img src="/logo.svg" alt="Logo de StockAR" className="w-7 h-7 sm:w-8 sm:h-8" />
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Inventario</h1>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight">StockAR</h1>
             </Link>
             <nav className="flex flex-wrap justify-center gap-1.5 sm:gap-2">
               <Link
