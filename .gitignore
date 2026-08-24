@@ -42,3 +42,6 @@ next-env.d.ts
 
 # sqlite (datos locales, el esquema se crea solo al iniciar)
 /data
+
+# logs locales
+dev-server.log
