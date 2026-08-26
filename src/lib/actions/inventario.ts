@@ -48,6 +48,46 @@ export async function getUltimoInventarioAnterior(
   return { fecha: row.fecha, items };
 }
 
+export interface InventarioHistorial {
+  fecha: string;
+  items: {
+    producto_id: number;
+    producto_nombre: string;
+    categoria_nombre: string;
+    cantidad: number;
+  }[];
+}
+
+export async function getUltimos4Inventarios(): Promise<InventarioHistorial[]> {
+  const fechas = await queryAll<{ fecha: string }>(
+    "SELECT DISTINCT fecha FROM inventarios ORDER BY fecha DESC LIMIT 4"
+  );
+
+  if (fechas.length === 0) return [];
+
+  const resultados = await Promise.all(
+    fechas.map(async (f) => {
+      const items = await queryAll<{
+        producto_id: number;
+        producto_nombre: string;
+        categoria_nombre: string;
+        cantidad: number;
+      }>(
+        `SELECT i.producto_id, p.nombre as producto_nombre, c.nombre as categoria_nombre, i.cantidad
+         FROM inventarios i
+         JOIN productos p ON i.producto_id = p.id
+         JOIN categorias c ON p.categoria_id = c.id
+         WHERE i.fecha = ?
+         ORDER BY c.nombre, p.nombre`,
+        [f.fecha]
+      );
+      return { fecha: f.fecha, items };
+    })
+  );
+
+  return resultados;
+}
+
 export async function getMercaderiaEntreFechas(
   fechaDesde: string,
   fechaHasta: string

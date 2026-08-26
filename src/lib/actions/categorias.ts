@@ -21,6 +21,14 @@ export async function crearCategoria(nombre: string): Promise<{ ok: boolean; err
 
 export async function eliminarCategoria(id: number): Promise<{ ok: boolean; error?: string }> {
   try {
+    const productos = await queryAll<{ id: number }>(
+      "SELECT id FROM productos WHERE categoria_id = ?",
+      [id]
+    );
+    for (const p of productos) {
+      await run("DELETE FROM inventarios WHERE producto_id = ?", [p.id]);
+      await run("DELETE FROM mercaderia WHERE producto_id = ?", [p.id]);
+    }
     await run("DELETE FROM productos WHERE categoria_id = ?", [id]);
     await run("DELETE FROM categorias WHERE id = ?", [id]);
     return { ok: true };

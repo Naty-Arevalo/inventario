@@ -29,17 +29,25 @@ async function calcularStockPorProducto(): Promise<Map<number, StockProducto>> {
   ]);
 
   const mapa = new Map<number, StockProducto>();
-  for (const t of todaMerc) {
-    mapa.set(t.producto_id, { inventario: 0, mercaderia: t.total ?? 0 });
+
+  // Paso 1: Productos con inventario arrancan con mercadería = 0
+  for (const i of ultimosInv) {
+    mapa.set(i.producto_id, { inventario: i.cantidad, mercaderia: 0 });
   }
+
+  // Paso 2: Productos SIN inventario usan toda la mercadería histórica
+  for (const t of todaMerc) {
+    if (!mapa.has(t.producto_id)) {
+      mapa.set(t.producto_id, { inventario: 0, mercaderia: t.total ?? 0 });
+    }
+  }
+
+  // Paso 3: Sobrescribir mercadería con lo recibido DESPUÉS del último inventario
   for (const m of mercDesdeInv) {
     const actual = mapa.get(m.producto_id) ?? { inventario: 0, mercaderia: 0 };
     mapa.set(m.producto_id, { ...actual, mercaderia: m.total ?? 0 });
   }
-  for (const i of ultimosInv) {
-    const actual = mapa.get(i.producto_id) ?? { inventario: 0, mercaderia: 0 };
-    mapa.set(i.producto_id, { ...actual, inventario: i.cantidad });
-  }
+
   return mapa;
 }
 
